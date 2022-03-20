@@ -64,13 +64,33 @@ const App = () => {
     }
   };
 
-  const onChangeHandler = (name, value) => {
+  const onChangeHandler = async (name, value) => {
     if (name === 'SelectedFood') {
       setFormData({
         ...formData,
         [name]: value,
         foodAmount: getFoodAmount(value)?.toString(),
       });
+    } else if (name === 'foodAmount') {
+      setFormData({
+        ...formData,
+        [name]: value,
+      });
+      const foodListData = foodList.map(obj => {
+        if (obj.Name === formData.SelectedFood) {
+          return {
+            Name: formData.SelectedFood,
+            Price: value,
+          };
+        }
+        return obj;
+      });
+      setFoodList(foodListData);
+      try {
+        await AsyncStorage.setItem('FoodList', JSON.stringify(foodListData));
+      } catch (e) {
+        console.log('Erro occured: AsyncStorage FoodList', e);
+      }
     } else {
       setFormData({
         ...formData,
@@ -117,6 +137,80 @@ const App = () => {
       },
     };
     updateFoodData(updatedData);
+  };
+
+  const AddUser = async () => {
+    if (formData?.addUserName) {
+      const isUserAlreadyAdded = userList.some(obj => {
+        return (
+          obj?.Name?.toLowerCase() === formData?.addUserName?.toLowerCase()
+        );
+      });
+      if (!isUserAlreadyAdded) {
+        const userListData = userList;
+        userListData.push({Name: formData?.addUserName});
+        setUserList(userListData);
+        try {
+          await AsyncStorage.setItem('UserList', JSON.stringify(userListData));
+          Alert.alert('', 'User added successfully', [
+            {
+              text: 'Ok',
+              onPress: () => {
+                console.log('User added successfully');
+              },
+            },
+          ]);
+        } catch (e) {
+          console.log('Erro occured: AsyncStorage UserList', e);
+        }
+      } else {
+        Alert.alert('', 'User already added', [
+          {
+            text: 'Ok',
+            onPress: () => {
+              console.log('User added');
+            },
+          },
+        ]);
+      }
+    }
+  };
+
+  const AddFoodName = async () => {
+    if (formData?.addFoodName) {
+      const isFoodAlreadyAdded = foodList.some(obj => {
+        return (
+          obj?.Name?.toLowerCase() === formData?.addFoodName?.toLowerCase()
+        );
+      });
+      if (!isFoodAlreadyAdded) {
+        const foodListData = foodList;
+        foodListData.push({Name: formData?.addFoodName, Price: 30});
+        setFoodList(foodListData);
+        try {
+          await AsyncStorage.setItem('FoodList', JSON.stringify(foodListData));
+          Alert.alert('', 'Food added successfully', [
+            {
+              text: 'Ok',
+              onPress: () => {
+                console.log('Food added successfully');
+              },
+            },
+          ]);
+        } catch (e) {
+          console.log('Erro occured: AsyncStorage FoodList', e);
+        }
+      } else {
+        Alert.alert('', 'Food already added', [
+          {
+            text: 'Ok',
+            onPress: () => {
+              console.log('Food added');
+            },
+          },
+        ]);
+      }
+    }
   };
 
   const RemoveFood = () => {
@@ -247,7 +341,7 @@ const App = () => {
     overallTableData.push([foodName, foodObj.Count, foodObj.Amount]);
     totalAmount += foodObj.Amount;
   });
-
+  // console.log('foodData', JSON.stringify(foodData));
   return (
     <SafeAreaView style={backgroundStyle}>
       <ScrollView
@@ -287,7 +381,7 @@ const App = () => {
             <TextInput
               style={styles.input}
               value={formData.foodAmount}
-              onChange={event => onChangeHandler('foodAmount', event.text)}
+              onChangeText={text => onChangeHandler('foodAmount', text)}
             />
           </View>
           <View style={styles.buttons}>
@@ -324,6 +418,28 @@ const App = () => {
           <Text style={{...styles.subHeading, ...styles.totalAmount}}>
             Total Amount: {totalAmount}
           </Text>
+        </View>
+        <View>
+          <Text style={styles.Label}>Add User</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.addUserName}
+            onChangeText={text => onChangeHandler('addUserName', text)}
+          />
+          <View style={styles.buttonStyle}>
+            <Button onPress={AddUser} title="Add User" />
+          </View>
+        </View>
+        <View>
+          <Text style={styles.Label}>Add Food</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.addFoodName}
+            onChangeText={text => onChangeHandler('addFoodName', text)}
+          />
+          <View style={styles.buttonStyle}>
+            <Button onPress={AddFoodName} title="Add Food" />
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
