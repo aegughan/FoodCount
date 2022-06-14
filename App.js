@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import React, {useEffect, useState} from 'react';
 import {
   Alert,
@@ -213,49 +214,88 @@ const App = () => {
     }
   };
 
-  const RemoveFood = () => {
+  const RemoveFood = (userName, foodName) => {
     const currentDate = `${formData?.foodDate?.getDate()}/${
       (formData?.foodDate?.getMonth() || 0) + 1
     }/${formData?.foodDate?.getFullYear()}`;
     let userData = {};
     let foodCount = 0;
     let foodAmount = 0;
-    if (foodData[currentDate] && foodData[currentDate][formData.SelectedUser]) {
-      userData = foodData[currentDate][formData.SelectedUser];
-    }
-    if (
-      foodData[currentDate] &&
-      foodData[currentDate][formData.SelectedUser] &&
-      foodData[currentDate][formData.SelectedUser][formData?.SelectedFood]
-    ) {
-      foodCount =
-        foodData[currentDate][formData.SelectedUser][formData?.SelectedFood]
-          .Count;
-    }
-    if (
-      foodData[currentDate] &&
-      foodData[currentDate][formData.SelectedUser] &&
-      foodData[currentDate][formData.SelectedUser][formData?.SelectedFood]
-    ) {
-      foodAmount =
-        foodCount > 0
-          ? (foodCount - 1) * getFoodAmount(formData?.SelectedFood)
-          : 0;
-    }
-    const updatedData = {
-      ...(foodData || {}),
-      [currentDate]: {
-        ...(foodData[currentDate] || {}),
-        [formData.SelectedUser]: {
-          ...userData,
-          [formData.SelectedFood]: {
-            Count: foodCount >= 0 ? foodCount - 1 : 0,
-            Amount: foodAmount,
+    if (userName) {
+      if (foodData[currentDate] && foodData[currentDate][userName]) {
+        userData = foodData[currentDate][userName];
+      }
+      if (
+        foodData[currentDate] &&
+        foodData[currentDate][userName] &&
+        foodData[currentDate][userName][foodName]
+      ) {
+        foodCount =
+          foodData[currentDate][userName][foodName]
+            .Count;
+      }
+      if (
+        foodData[currentDate] &&
+        foodData[currentDate][userName] &&
+        foodData[currentDate][userName][foodName]
+      ) {
+        foodAmount =
+          foodCount > 0
+            ? (foodCount - 1) * getFoodAmount(foodName)
+            : 0;
+      }
+      const updatedData = {
+        ...(foodData || {}),
+        [currentDate]: {
+          ...(foodData[currentDate] || {}),
+          [userName]: {
+            ...userData,
+            [foodName]: {
+              Count: foodCount >= 0 ? foodCount - 1 : 0,
+              Amount: foodAmount,
+            },
           },
         },
-      },
-    };
-    updateFoodData(updatedData);
+      };
+      updateFoodData(updatedData);
+    } else {
+      if (foodData[currentDate] && foodData[currentDate][formData.SelectedUser]) {
+        userData = foodData[currentDate][formData.SelectedUser];
+      }
+      if (
+        foodData[currentDate] &&
+        foodData[currentDate][formData.SelectedUser] &&
+        foodData[currentDate][formData.SelectedUser][formData?.SelectedFood]
+      ) {
+        foodCount =
+          foodData[currentDate][formData.SelectedUser][formData?.SelectedFood]
+            .Count;
+      }
+      if (
+        foodData[currentDate] &&
+        foodData[currentDate][formData.SelectedUser] &&
+        foodData[currentDate][formData.SelectedUser][formData?.SelectedFood]
+      ) {
+        foodAmount =
+          foodCount > 0
+            ? (foodCount - 1) * getFoodAmount(formData?.SelectedFood)
+            : 0;
+      }
+      const updatedData = {
+        ...(foodData || {}),
+        [currentDate]: {
+          ...(foodData[currentDate] || {}),
+          [formData.SelectedUser]: {
+            ...userData,
+            [formData.SelectedFood]: {
+              Count: foodCount >= 0 ? foodCount - 1 : 0,
+              Amount: foodAmount,
+            },
+          },
+        },
+      };
+      updateFoodData(updatedData);
+    }
   };
 
   const ClearStorage = () => {
@@ -304,10 +344,12 @@ const App = () => {
     ]);
   };
 
-  const foodTableHeader = ['Name', 'Food', 'Count', 'Amount'];
+  const foodTableHeader = ['Name', 'Food', 'Count', 'Amount', ''];
   const overallTableHeader = ['Food', 'Count', 'Amount'];
+  const amountPaidHeader = ['Name', 'Amount'];
   const foodTableData = [];
   const overallFoodCount = {};
+  let overallAmountToBePaid = [];
 
   const currentDate = `${formData?.foodDate?.getDate()}/${
     (formData?.foodDate?.getMonth() || 0) + 1
@@ -327,6 +369,10 @@ const App = () => {
           keyList.push(foodName);
           keyList.push(foodVal.Count);
           keyList.push(foodVal.Amount);
+          keyList.push(<Button
+            onPress={() => {RemoveFood(key[0],foodName)}}
+            title="Remove"
+          />);
           foodTableData.push(keyList);
           overallFoodCount[foodName].Count += foodVal.Count;
           overallFoodCount[foodName].Amount += foodVal.Amount;
@@ -334,6 +380,18 @@ const App = () => {
       });
     });
   }
+  const perPersonAmountVal = {};
+  if (foodData) {
+    Object.entries(foodData).forEach(foodObj => {
+      Object.entries(foodObj[1]).forEach(([personName, val]) => {
+        Object.entries(val).forEach((obj) => {
+          if (!perPersonAmountVal[personName]){ perPersonAmountVal[personName] = 0;}
+          perPersonAmountVal[personName] += obj[1].Amount;
+        });
+      });
+    });
+  }
+  overallAmountToBePaid = Object.entries(perPersonAmountVal);
 
   const overallTableData = [];
   let totalAmount = 0;
@@ -341,7 +399,7 @@ const App = () => {
     overallTableData.push([foodName, foodObj.Count, foodObj.Amount]);
     totalAmount += foodObj.Amount;
   });
-  // console.log('foodData', JSON.stringify(foodData));
+
   return (
     <SafeAreaView style={backgroundStyle}>
       <ScrollView
@@ -418,6 +476,13 @@ const App = () => {
           <Text style={{...styles.subHeading, ...styles.totalAmount}}>
             Total Amount: {totalAmount}
           </Text>
+        </View>
+        <View>
+          <Text style={styles.subHeading}>Amount to be paid</Text>
+          <TableComponent
+            tableHeader={amountPaidHeader}
+            tableData={overallAmountToBePaid}
+          />
         </View>
         <View>
           <Text style={styles.Label}>Add User</Text>
